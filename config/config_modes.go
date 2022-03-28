@@ -18,6 +18,9 @@ const (
 
 	// ModeStatic for serving static content
 	ModeStatic = 5
+
+	// ModeWasm for WebAssembly
+	ModeWasm = 6
 )
 
 // WatchdogModeConst as a const int
@@ -33,6 +36,8 @@ func WatchdogModeConst(mode string) int {
 		return ModeHTTP
 	case "static":
 		return ModeStatic
+	case "wasm":
+		return ModeWasm
 	default:
 		return 0
 	}
@@ -51,6 +56,8 @@ func WatchdogMode(mode int) string {
 		return "http"
 	case ModeStatic:
 		return "static"
+	case ModeWasm:
+		return "wasm"
 	default:
 		return "unknown"
 	}

@@ -20,10 +20,10 @@ import (
 	"time"
 
 	limiter "github.com/openfaas/faas-middleware/concurrency-limiter"
-	"github.com/openfaas/of-watchdog/config"
-	"github.com/openfaas/of-watchdog/executor"
-	"github.com/openfaas/of-watchdog/metrics"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/yanghaku/of-watchdog-wasm/config"
+	"github.com/yanghaku/of-watchdog-wasm/executor"
+	"github.com/yanghaku/of-watchdog-wasm/metrics"
 )
 
 var (
@@ -182,6 +182,8 @@ func buildRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs bool) 
 		requestHandler = makeHTTPRequestHandler(watchdogConfig, prefixLogs, watchdogConfig.LogBufferSize)
 	case config.ModeStatic:
 		requestHandler = makeStaticRequestHandler(watchdogConfig)
+	case config.ModeWasm:
+		requestHandler = makeWasmRequestHandler(watchdogConfig, prefixLogs, watchdogConfig.LogBufferSize)
 	default:
 		log.Panicf("unknown watchdog mode: %d", watchdogConfig.OperationalMode)
 	}
@@ -277,6 +279,39 @@ func makeForkRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 			// Probably cannot write to client if we already have written a header
 			// w.WriteHeader(500)
 			// w.Write([]byte(err.Error()))
+		}
+	}
+}
+
+func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs bool, logBufferSize int) func(http.ResponseWriter, *http.Request) {
+	commandName, arguments := watchdogConfig.Process()
+
+	functionInvoker, err := executor.NewWasmFunctionRunner(
+		watchdogConfig.ExecTimeout, prefixLogs, logBufferSize, commandName, arguments, watchdogConfig.WasmRoot)
+
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		var environment []string
+
+		if watchdogConfig.InjectCGIHeaders {
+			environment = getEnvironment(r)
+		}
+
+		req := executor.FunctionRequest{
+			InputReader:  r.Body,
+			OutputWriter: w,
+			Environment:  environment,
+		}
+
+		w.Header().Set("Content-Type", watchdogConfig.ContentType)
+		err := functionInvoker.Run(req)
+		if err != nil {
+			log.Println(err.Error())
 		}
 	}
 }

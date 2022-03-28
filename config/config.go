@@ -48,6 +48,9 @@ type WatchdogConfig struct {
 
 	// LogBufferSize is the size for scanning logs for stdout/stderr
 	LogBufferSize int
+
+	// WasmRoot is the root directory for wasm file system
+	WasmRoot string
 }
 
 // Process returns a string for the process and a slice for the arguments from the FunctionProcess.
@@ -121,6 +124,11 @@ func New(env []string) (WatchdogConfig, error) {
 		}
 	}
 
+	wasmRoot := "/wasm_root"
+	if val, exists := envMap["wasm_root"]; exists {
+		wasmRoot = val
+	}
+
 	c := WatchdogConfig{
 		TCPPort:             getInt(envMap, "port", 8080),
 		HTTPReadTimeout:     getDuration(envMap, "read_timeout", time.Second*10),
@@ -139,6 +147,7 @@ func New(env []string) (WatchdogConfig, error) {
 		MaxInflight:         getInt(envMap, "max_inflight", 0),
 		PrefixLogs:          prefixLogs,
 		LogBufferSize:       logBufferSize,
+		WasmRoot:            wasmRoot,
 	}
 
 	if val := envMap["mode"]; len(val) > 0 {
