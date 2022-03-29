@@ -183,7 +183,7 @@ func buildRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs bool) 
 	case config.ModeStatic:
 		requestHandler = makeStaticRequestHandler(watchdogConfig)
 	case config.ModeWasm:
-		requestHandler = makeWasmRequestHandler(watchdogConfig, prefixLogs, watchdogConfig.LogBufferSize)
+		requestHandler = makeWasmRequestHandler(watchdogConfig, prefixLogs)
 	default:
 		log.Panicf("unknown watchdog mode: %d", watchdogConfig.OperationalMode)
 	}
@@ -283,11 +283,11 @@ func makeForkRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 	}
 }
 
-func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs bool, logBufferSize int) func(http.ResponseWriter, *http.Request) {
+func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs bool) func(http.ResponseWriter, *http.Request) {
 	commandName, arguments := watchdogConfig.Process()
 
 	functionInvoker, err := executor.NewWasmFunctionRunner(
-		watchdogConfig.ExecTimeout, prefixLogs, logBufferSize, commandName, arguments, watchdogConfig.WasmRoot)
+		watchdogConfig.ExecTimeout, prefixLogs, commandName, arguments, watchdogConfig.WasmRoot)
 
 	if err != nil {
 		log.Println(err)
