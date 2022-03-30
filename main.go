@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -20,6 +21,7 @@ import (
 	"time"
 
 	limiter "github.com/openfaas/faas-middleware/concurrency-limiter"
+	types "github.com/openfaas/faas-provider/types"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/yanghaku/of-watchdog-wasm/config"
 	"github.com/yanghaku/of-watchdog-wasm/executor"
@@ -28,6 +30,7 @@ import (
 
 var (
 	acceptingConnections int32
+	function             *executor.WasmFunctionRunner
 )
 
 func main() {
@@ -72,6 +75,8 @@ func main() {
 	httpMetrics := metrics.NewHttp()
 	http.HandleFunc("/", metrics.InstrumentHandler(requestHandler, httpMetrics))
 	http.HandleFunc("/_/health", makeHealthHandler())
+	http.HandleFunc("/scale-updater", makeReplicaUpdaterHandler())
+	http.HandleFunc("/scale-reader", makeReplicaReaderHandler())
 
 	metricsServer := metrics.MetricsServer{}
 	metricsServer.Register(watchdogConfig.MetricsPort)
@@ -286,7 +291,7 @@ func makeForkRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs bool) func(http.ResponseWriter, *http.Request) {
 	commandName, arguments := watchdogConfig.Process()
 
-	functionInvoker, err := executor.NewWasmFunctionRunner(
+	function, err := executor.NewWasmFunctionRunner(
 		watchdogConfig.ExecTimeout, prefixLogs, commandName, arguments, watchdogConfig.WasmRoot)
 
 	if err != nil {
@@ -309,7 +314,7 @@ func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 		}
 
 		w.Header().Set("Content-Type", watchdogConfig.ContentType)
-		err := functionInvoker.Run(req)
+		err := function.Run(req)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -421,7 +426,56 @@ func makeHealthHandler() func(http.ResponseWriter, *http.Request) {
 		}
 	}
 }
-
+func makeReplicaReaderHandler() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if function == nil {
+			w.WriteHeader(http.StatusBadRequest)
+			msg := "function not exist"
+			w.Write([]byte(msg))
+			log.Println(msg)
+			return
+		}
+		funcResponse := &types.FunctionStatus{}
+		funcResponse.Replicas = uint64(function.ReadScale())
+		funcResponse.EnvProcess = function.Process
+		funcResponse.AvailableReplicas = uint64(function.ReadAvailableScale())
+		funcResBytes, err := json.Marshal(funcResponse)
+		if err != nil {
+			log.Printf("Failed to marshal function in watchdog: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Failed to marshal function"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(funcResBytes)
+	}
+}
+func makeReplicaUpdaterHandler() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := types.ScaleServiceRequest{}
+		if r.Body != nil {
+			defer r.Body.Close()
+			bytesIn, _ := ioutil.ReadAll(r.Body)
+			marshalErr := json.Unmarshal(bytesIn, &req)
+			if marshalErr != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				msg := "Cannot parse request. Please pass valid JSON."
+				w.Write([]byte(msg))
+				log.Println(msg, marshalErr)
+				return
+			}
+		}
+		err := function.ScaleFunc(int(req.Replicas))
+		if err != nil {
+			log.Printf("scale function error %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Failed to scale function"))
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
 func printVersion() {
 	sha := "unknown"
 	if len(GitCommit) > 0 {

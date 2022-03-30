@@ -2,13 +2,14 @@ package executor
 
 import (
 	"fmt"
-	"github.com/yanghaku/wasmer-gpu-go/wasmer"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/yanghaku/wasmer-gpu-go/wasmer"
 )
 
 const (
@@ -256,6 +257,12 @@ func (f *WasmFunctionRunner) ReadScale() int {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	return f.replicas
+}
+
+func (f *WasmFunctionRunner) ReadAvailableScale() int {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+	return len(f.freeFuncId)
 }
 
 // ScaleFunc scale the replicas
