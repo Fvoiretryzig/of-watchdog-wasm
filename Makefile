@@ -8,7 +8,8 @@ endif
 LDFLAGS := "-s -w -X main.Version=$(.GIT_VERSION) -X main.GitCommit=$(.GIT_COMMIT)"
 
 
-.IMAGE=ghcr.io/openfaas/of-watchdog
+# .IMAGE=ghcr.io/openfaas/of-watchdog
+.IMAGE=lilytangt/of-watchdog
 TAG?=latest
 
 export GOFLAGS=-mod=vendor
