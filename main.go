@@ -319,10 +319,9 @@ func makeForkRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 
 func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs bool) func(http.ResponseWriter, *http.Request) {
 	commandName, arguments := watchdogConfig.Process()
-
-	function, err := executor.NewWasmFunctionRunner(
+	var err error
+	function, err = executor.NewWasmFunctionRunner(
 		watchdogConfig.ExecTimeout, prefixLogs, commandName, arguments, watchdogConfig.WasmRoot)
-
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
@@ -478,6 +477,7 @@ func makeReplicaReaderHandler() func(http.ResponseWriter, *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(funcResBytes)
+		log.Println("response for replica Reader request")
 	}
 }
 func makeReplicaUpdaterHandler() func(http.ResponseWriter, *http.Request) {
@@ -503,6 +503,7 @@ func makeReplicaUpdaterHandler() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
+		log.Printf("success update replica to %d\n", req.Replicas)
 	}
 }
 func printVersion() {
