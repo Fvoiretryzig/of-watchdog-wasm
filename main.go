@@ -469,7 +469,7 @@ func makeReplicaReaderHandler() func(http.ResponseWriter, *http.Request) {
 		funcResponse.EnvProcess = function.Process
 		funcResponse.AvailableReplicas = uint64(function.ReadAvailableScale())
 		funcResBytes, err := json.Marshal(funcResponse)
-
+		log.Println("this is funcResByte:", string(funcResBytes))
 		if err != nil {
 			log.Printf("Failed to marshal function in watchdog: %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
