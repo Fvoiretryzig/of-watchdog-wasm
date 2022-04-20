@@ -318,6 +318,7 @@ func makeForkRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 }
 
 func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs bool) func(http.ResponseWriter, *http.Request) {
+	log.Println("this is wasmRequestHandler!!!!")
 	commandName, arguments := watchdogConfig.Process()
 
 	function, err := executor.NewWasmFunctionRunner(
@@ -329,7 +330,7 @@ func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-
+		log.Println("this is wasmRequestHandler handler func!!!!!!!")
 		var environment []string
 
 		if watchdogConfig.InjectCGIHeaders {
@@ -457,6 +458,7 @@ func makeHealthHandler() func(http.ResponseWriter, *http.Request) {
 }
 func makeReplicaReaderHandler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("this is replica Reader in of watchdog!!!!")
 		if function == nil {
 			w.WriteHeader(http.StatusBadRequest)
 			msg := "function not exist"
