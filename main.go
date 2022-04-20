@@ -320,8 +320,8 @@ func makeForkRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs bool) func(http.ResponseWriter, *http.Request) {
 	log.Println("this is wasmRequestHandler!!!!")
 	commandName, arguments := watchdogConfig.Process()
-
-	function, err := executor.NewWasmFunctionRunner(
+	var err error
+	function, err = executor.NewWasmFunctionRunner(
 		watchdogConfig.ExecTimeout, prefixLogs, commandName, arguments, watchdogConfig.WasmRoot)
 
 	if err != nil {
