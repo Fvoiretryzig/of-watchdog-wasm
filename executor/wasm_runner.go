@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -158,7 +159,7 @@ func (f *WasmFunctionRunner) Run(req FunctionRequest) error {
 	if err := os.RemoveAll(wasmWorkDir); err != nil {
 		return err
 	}
-
+	runtime.GC()
 	return err
 }
 
