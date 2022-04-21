@@ -321,16 +321,14 @@ func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 	log.Println("this is wasmRequestHandler!!!!")
 	commandName, arguments := watchdogConfig.Process()
 	var err error
-	function, err = executor.NewWasmFunctionRunner(
-		watchdogConfig.ExecTimeout, prefixLogs, commandName, arguments, watchdogConfig.WasmRoot)
+	function, err = executor.NewWasmFunctionRunner(watchdogConfig.ExecTimeout, prefixLogs, commandName, arguments, watchdogConfig.WasmRoot)
 
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("this is wasmRequestHandler handler func!!!!!!!")
+		log.Printf("this is wasmRequestHandler handler func!\n")
 		var environment []string
 
 		if watchdogConfig.InjectCGIHeaders {
@@ -485,10 +483,12 @@ func makeReplicaReaderHandler() func(http.ResponseWriter, *http.Request) {
 }
 func makeReplicaUpdaterHandler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("this is makeReplicaUpdaterHandler")
 		req := types.ScaleServiceRequest{}
 		if r.Body != nil {
 			defer r.Body.Close()
 			bytesIn, _ := ioutil.ReadAll(r.Body)
+			log.Println("this is bytesIn:", string(bytesIn))
 			marshalErr := json.Unmarshal(bytesIn, &req)
 			if marshalErr != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -498,7 +498,9 @@ func makeReplicaUpdaterHandler() func(http.ResponseWriter, *http.Request) {
 				return
 			}
 		}
+		log.Println("this is replicas before scale:",function.ReadScale())
 		err := function.ScaleFunc(int(req.Replicas))
+		log.Println("this is replicas after scale:",function.ReadScale())
 		if err != nil {
 			log.Printf("scale function error %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
