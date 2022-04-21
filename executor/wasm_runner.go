@@ -19,7 +19,7 @@ const (
 )
 
 // defaultInstanceNum is the default number of instance
-const defaultInstanceNum = 4
+const defaultInstanceNum = 2
 
 // maxInstanceNum is the max limit for running instance
 const maxInstanceNum = 65535
