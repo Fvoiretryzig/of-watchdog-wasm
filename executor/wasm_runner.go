@@ -37,6 +37,8 @@ type WasmFunctionRunner struct {
 	WasmModule *wasmer.Module
 	WasmStore  *wasmer.Store
 
+	InvokeTimes int
+
 	freeFuncId chan int
 	replicas   int
 	mutex      sync.Mutex
@@ -162,10 +164,10 @@ func (f *WasmFunctionRunner) Run(req FunctionRequest) error {
 
 // runFunc instance a func and run it
 func (f *WasmFunctionRunner) runFunc(req FunctionRequest, funcId string) error {
-	log.Printf("process name =  %s", f.Process)
-	log.Printf("process args = %s", f.ProcessArgs)
-	log.Printf("running function Id = %s", funcId)
-	log.Printf("exec Time out = %s", f.ExecTimeout.String())
+	log.Printf("%d process name =  %s", f.InvokeTimes, f.Process)
+	log.Printf("%d process args = %s", f.InvokeTimes, f.ProcessArgs)
+	log.Printf("%d running function Id = %s", f.InvokeTimes, funcId)
+	log.Printf("%d exec Time out = %s", f.InvokeTimes, f.ExecTimeout.String())
 
 	startTime := time.Now()
 
@@ -180,12 +182,14 @@ func (f *WasmFunctionRunner) runFunc(req FunctionRequest, funcId string) error {
 
 	wasiEnv, err := wasiEnvBuilder.Finalize()
 	if err != nil {
+		log.Println("this is wasiEnvBuilder.Finalize err!")
 		log.Println(err)
 		return err
 	}
 
 	importObject, err := wasiEnv.GenerateImportObject(f.WasmStore, f.WasmModule)
 	if err != nil {
+		log.Println("this is wasiEnv.GenerateImportObject err!")
 		log.Println(err)
 		return err
 	}
@@ -193,18 +197,21 @@ func (f *WasmFunctionRunner) runFunc(req FunctionRequest, funcId string) error {
 	cudaEnv := wasmer.NewCudaEnvironment()
 	err = cudaEnv.AddImportObject(f.WasmStore, importObject)
 	if err != nil {
+		log.Println("this is cudaEnv.AddImportObject err!")
 		log.Println(err)
 		return err
 	}
 
 	instance, err := wasmer.NewInstance(f.WasmModule, importObject)
 	if err != nil {
+		log.Println("this is wasmer.NewInstance err!")
 		log.Println(err)
 		return err
 	}
 
 	start, err := instance.Exports.GetWasiStartFunction()
 	if err != nil {
+		log.Println("this is instance.Exports.GetWasiStartFunction err!")
 		log.Println(err)
 		return err
 	}
@@ -244,7 +251,7 @@ func (f *WasmFunctionRunner) runFunc(req FunctionRequest, funcId string) error {
 	}
 
 	duringTime := time.Since(startTime)
-	log.Printf("Took %v us ( %v ms )", duringTime.Microseconds(), duringTime.Milliseconds())
+	log.Printf("%d invoke Took %v us ( %v ms )", f.InvokeTimes, duringTime.Microseconds(), duringTime.Milliseconds())
 
 	// capture the stderr for function
 	go wasmLogging(f.Process+":"+funcId, wasiEnv.ReadStderr(), f.LogPrefix)

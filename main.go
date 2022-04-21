@@ -328,7 +328,8 @@ func makeWasmRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 		os.Exit(1)
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("this is wasmRequestHandler handler func!\n")
+		function.InvokeTimes++
+		log.Printf("this is wasmRequestHandler handler %d func!\n", function.InvokeTimes)
 		var environment []string
 
 		if watchdogConfig.InjectCGIHeaders {
@@ -498,9 +499,9 @@ func makeReplicaUpdaterHandler() func(http.ResponseWriter, *http.Request) {
 				return
 			}
 		}
-		log.Println("this is replicas before scale:",function.ReadScale())
+		log.Println("this is replicas before scale:", function.ReadScale())
 		err := function.ScaleFunc(int(req.Replicas))
-		log.Println("this is replicas after scale:",function.ReadScale())
+		log.Println("this is replicas after scale:", function.ReadScale())
 		if err != nil {
 			log.Printf("scale function error %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
