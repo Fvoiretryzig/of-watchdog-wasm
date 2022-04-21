@@ -14,13 +14,13 @@ COPY fwatchdog-arm64 /usr/bin/fwatchdog
 #    && chown app /home/app
 
 #WORKDIR /home/app
-COPY wasm_root/ ./wasm_root
+COPY wasm_root/ /wasm_root
 
 #RUN chown -R app /home/app
 #USER app
 
-ENV fprocess="mulMatrix.wasm 1024"
-# ENV fprocess="device.wasm"
+# ENV fprocess="mulMatrix.wasm 1024"
+ENV fprocess="device.wasm"
 ENV mode=wasm
 ENV wasm_root=/wasm_root
 
